@@ -3,18 +3,19 @@ from scipy.stats import multivariate_normal
 from sklearn.cluster import KMeans
 
 class XMeans:
-    def __init__(self, K_init=2, K_max=20, identical_spherical_normal_distributions=False, split_centroids_mannually=False, **KMeans_args):
+    def __init__(self, K_init=2, K_max=20, identical_spherical_normal_distributions=False, split_centroids_mannually=False, random_split=False, **KMeans_args):
         self.K_init = K_init
         self.K_max = K_max
         self.identical_spherical_normal_distributions = identical_spherical_normal_distributions
         self.split_centroids_mannually = split_centroids_mannually
+        self.random_split = random_split
         self.KMeans_args = KMeans_args
         
-    def centroids_subclusters(self, cluster_points, mu, random=False):
+    def centroids_subclusters(self, cluster_points, mu):
         '''subclusters' centers are picked by moving a distance proportional to the size of the parent cluster region 
         in opposite directions along a vector that can reach the furthest point from the parent cluster center or along a random vector'''
         norms = np.linalg.norm(cluster_points - mu, axis=1)
-        direction = np.random.random_sample(size=len(mu)) if random else (cluster_points - mu)[norms.argmax()]
+        direction = np.random.random_sample(size=len(mu)) if self.random_split else (cluster_points - mu)[norms.argmax()]
         vector = direction/np.sqrt(np.dot(direction, direction))*np.quantile(norms, 0.9)
         return np.array([mu + vector, mu - vector])
         
@@ -30,8 +31,7 @@ class XMeans:
         return K*(1 + self.M) # equivalent to (K-1) + M*K + 1
             
     def BIC_identical_spherical(self, R_n_list, variance):
-        '''Bayesian information criterion assuming all clusters are in identical spherical normal distribution
-        note that variances are the same across all clusters under such assumption'''
+        '''Bayesian information criterion assuming all clusters are in 'identical' spherical normal distribution'''
         K = len(R_n_list)
         R = np.sum(R_n_list)
         if variance == 0: 
@@ -43,8 +43,12 @@ class XMeans:
     def log_likelihood(self, R, cluster_points, mu, sigma):
         '''log likelihood of each cluster'''
         R_n = len(cluster_points)
-        return np.sum(np.fromiter((np.log(R_n/R) + multivariate_normal.logpdf(point, mu, sigma) for point in cluster_points), float))
-            
+        l = 0
+        for point in cluster_points:
+            if np.abs(np.linalg.det(sigma)) > 1e-5: # avoid singular covariance matrices
+                l += np.log(R_n/R) + multivariate_normal.logpdf(point, mu, sigma)
+        return l
+        
     def BIC(self, cluster_points_list, mu_list):
         '''Bayesian information criterion'''
         K = len(mu_list)
@@ -80,7 +84,7 @@ class XMeans:
                 if R_n > 1:
                     # pick subclusters' centers
                     if self.split_centroids_mannually:
-                        centroids_subcluster = self.centroids_subclusters(points_n, mu_n, random=False)
+                        centroids_subcluster = self.centroids_subclusters(points_n, mu_n)
                         model_subcluster = KMeans(n_clusters=2, init=centroids_subcluster, n_init=1, **self.KMeans_args).fit(points_n)
                     else:
                         model_subcluster = KMeans(n_clusters=2, **self.KMeans_args).fit(points_n)
@@ -112,6 +116,7 @@ class XMeans:
             if K == K_before or K > self.K_max:
                 break
         
+        if K == self.K_init: print('No split made. Please check data distribution or reduce K_init if necessary.')
         model_final = KMeans(n_clusters=K, **self.KMeans_args).fit(X)
         self.labels = model_final.labels_
         self.centroids = model_final.cluster_centers_
