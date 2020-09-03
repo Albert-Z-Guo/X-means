@@ -53,26 +53,26 @@ class XMeans:
         l = np.sum([self.log_likelihood(R, cluster_points, mu, sigma) for (cluster_points, mu, sigma) in zip(cluster_points_list, mu_list, sigma_list)])
         return l - self.p(K)/2*np.log(R)
     
-    def fit(self, X):
-        assert len(X) > 0 # X must not be empty
-        X = np.array(X)
-        self.R = X.shape[0]
-        self.M = X.shape[1]
+    def fit(self, data):
+        assert len(data) > 0 # data must not be empty
+        data = np.array(data)
+        self.R = data.shape[0]
+        self.M = data.shape[1]
         K = self.K_init
         init = 'k-means++'
-        
+
         while(1):            
             K_before = K
             
             # improve parameters (run K-means)
-            model = KMeans(n_clusters=K, init=init, n_init=1, **self.KMeans_args).fit(X)
+            model = KMeans(n_clusters=K, init=init, n_init=1, **self.KMeans_args).fit(data)
             labels = model.labels_
             centroids = model.cluster_centers_
             
             # improve structure            
             centroids_improved = list()
             for n in range(len(centroids)):
-                points_n = X[labels == n]
+                points_n = data[labels == n]
                 R_n = len(points_n)
                 mu_n = centroids[n]
                 
@@ -113,7 +113,7 @@ class XMeans:
                 break
         
         if K == self.K_init: print('No split made. Please check data distribution or reduce K_init if necessary.')
-        model_final = KMeans(n_clusters=K, **self.KMeans_args).fit(X)
+        model_final = KMeans(n_clusters=K, **self.KMeans_args).fit(data)
         self.labels = model_final.labels_
         self.centroids = model_final.cluster_centers_
         self.K = K
