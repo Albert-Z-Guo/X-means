@@ -34,19 +34,15 @@ class XMeans:
         '''Bayesian information criterion assuming all clusters are in 'identical' spherical normal distribution'''
         K = len(R_n_list)
         R = np.sum(R_n_list)
-        if variance == 0: 
-            l = np.sum([np.log(R_n) for R_n in R_n_list]) - 2*np.log(R)
-        else:
-            l = np.sum([R_n*np.log(R_n) for R_n in R_n_list]) - R*np.log(R) - (R*self.M)/2*np.log(2*np.pi*variance) - self.M/2*(R - K)
+        l = np.sum([R_n*np.log(R_n) for R_n in R_n_list]) - R*np.log(R) - (R*self.M)/2*np.log(2*np.pi*variance) - self.M/2*(R - K) if variance != 0 else -R*np.log(R)
         return l - self.p(K)/2*np.log(R)
     
     def log_likelihood(self, R, cluster_points, mu, sigma):
         '''log likelihood of each cluster'''
         R_n = len(cluster_points)
         l = 0
-        for point in cluster_points:
-            if np.abs(np.linalg.det(sigma)) > 1e-5: # avoid singular covariance matrices
-                l += np.log(R_n/R) + multivariate_normal.logpdf(point, mu, sigma)
+        for point in cluster_points: # avoid using singular covariance matrices in logpdf computations
+            l += np.log(R_n/R) + multivariate_normal.logpdf(point, mu, sigma) if np.abs(np.linalg.det(sigma)) > 1e-5 else np.log(1/R)
         return l
         
     def BIC(self, cluster_points_list, mu_list):
