@@ -112,7 +112,7 @@ class XMeans:
             if K == K_before or K > self.K_max:
                 break
         
-        if K == self.K_init: print('No split made. Please check data distribution or reduce K_init if necessary.')
+        if K == self.K_init: print('\033[93mWARNING: No split made. Please check data distribution or reduce K_init if necessary.\033[0m')
         model_final = KMeans(n_clusters=K, **self.KMeans_args).fit(data)
         self.labels = model_final.labels_
         self.centroids = model_final.cluster_centers_
