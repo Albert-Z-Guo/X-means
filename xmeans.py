@@ -20,7 +20,7 @@ class XMeans:
         return np.array([mu + vector, mu - vector])
         
     def variance_identical_spherical(self, cluster_points_list, mu_list):
-        '''variance estimate of each cluster in spherical normal distribution'''
+        '''maximum likelihood estimate of cluster variance assuming all clusters are in 'identical' spherical normal distribution'''
         R = np.sum([len(cluster_points) for cluster_points in cluster_points_list])
         K = len(mu_list)
         if R - K == 0: return 0
@@ -31,7 +31,9 @@ class XMeans:
         return K*(1 + self.M) # equivalent to (K-1) + M*K + 1
             
     def BIC_identical_spherical(self, R_n_list, variance):
-        '''Bayesian information criterion assuming all clusters are in 'identical' spherical normal distribution'''
+        '''Bayesian information criterion for a model assuming all clusters are in 'identical' spherical normal distribution;
+        spherical normal distribution entails covariance matrix = variance * identity matrix in the standard multivariate normal distribution formula,
+        which can in turn be simplified to the form inpaper'''
         K = len(R_n_list)
         R = np.sum(R_n_list)
         l = np.sum([R_n*np.log(R_n) for R_n in R_n_list]) - R*np.log(R) - (R*self.M)/2*np.log(2*np.pi*variance) - self.M/2*(R - K) if variance != 0 else -R*np.log(R)
@@ -46,10 +48,11 @@ class XMeans:
         return l
         
     def BIC(self, cluster_points_list, mu_list):
-        '''Bayesian information criterion'''
+        '''Bayesian information criterion for a model from direct log likelihood computation using estimated means and estimated covariance matrices'''
         K = len(mu_list)
         R = np.sum([len(cluster_points) for cluster_points in cluster_points_list])
-        sigma_list = [np.cov(cluster_points.T) for cluster_points in cluster_points_list]
+        # maximum likelihood estimate of covariance matrices; note that maximum likelihood estimate of means are just the sample means given by K-means algorithm
+        sigma_list = [np.dot((cluster_points - mu).T, (cluster_points - mu))/len(cluster_points) for (cluster_points, mu) in zip(cluster_points_list, mu_list)]
         l = np.sum([self.log_likelihood(R, cluster_points, mu, sigma) for (cluster_points, mu, sigma) in zip(cluster_points_list, mu_list, sigma_list)])
         return l - self.p(K)/2*np.log(R)
     
