@@ -33,7 +33,7 @@ class XMeans:
     def BIC_identical_spherical(self, R_n_list, variance):
         '''Bayesian information criterion for a model assuming all clusters are in 'identical' spherical normal distribution;
         spherical normal distribution entails covariance matrix = variance * identity matrix in the standard multivariate normal distribution formula,
-        which can in turn be simplified to the form inpaper'''
+        which can in turn be simplified to the form in paper'''
         K = len(R_n_list)
         R = np.sum(R_n_list)
         l = np.sum([R_n*np.log(R_n) for R_n in R_n_list]) - R*np.log(R) - (R*self.M)/2*np.log(2*np.pi*variance) - self.M/2*(R - K) if variance != 0 else -R*np.log(R)
