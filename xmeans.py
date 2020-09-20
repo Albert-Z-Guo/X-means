@@ -11,7 +11,7 @@ class XMeans:
         self.random_split = random_split
         self.KMeans_args = KMeans_args
         
-    def centroids_subclusters(self, cluster_points, mu):
+    def centroids_subcluster(self, cluster_points, mu):
         '''subclusters' centers are picked by moving a distance proportional to the size of the parent cluster region 
         in opposite directions along a vector that can reach the furthest point from the parent cluster center or along a random vector'''
         norms = np.linalg.norm(cluster_points - mu, axis=1)
@@ -83,8 +83,7 @@ class XMeans:
                 if R_n > 1:
                     # pick subclusters' centers
                     if self.split_centroids_mannually:
-                        centroids_subcluster = self.centroids_subclusters(points_n, mu_n)
-                        model_subcluster = KMeans(n_clusters=2, init=centroids_subcluster, n_init=1, **self.KMeans_args).fit(points_n)
+                        model_subcluster = KMeans(n_clusters=2, init=self.centroids_subcluster(points_n, mu_n), n_init=1, **self.KMeans_args).fit(points_n)
                     else:
                         model_subcluster = KMeans(n_clusters=2, **self.KMeans_args).fit(points_n)
                     labels_subcluster = model_subcluster.labels_
